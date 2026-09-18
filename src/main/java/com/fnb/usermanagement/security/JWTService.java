@@ -1,11 +1,13 @@
 package com.fnb.usermanagement.security;
 
+import com.fnb.usermanagement.entity.User;
+
 public interface JWTService {
 
 
-    String generateToken(String email);
+    String generateToken(User user);
 
-    boolean validateToken(String token);
+    boolean validateToken(String token, String email);
 
     String extractEmailFromToken(String token);
 }

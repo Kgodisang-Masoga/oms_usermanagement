@@ -1,25 +1,71 @@
 package com.fnb.usermanagement.security.serviceImpl;
 
+import com.fnb.usermanagement.entity.User;
 import com.fnb.usermanagement.security.JWTService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 
 @Service
 @RequiredArgsConstructor
 public class JWTServiceImpl implements JWTService {
 
-    @Override
-    public String generateToken(String email) {
-        return "";
+    @Value("${jwt.secret}")
+    private String secret;
+
+    @Value("${jwt.expiration-ms}")
+    private Long expirationMs;
+
+    private SecretKey signingKey(){
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
-    public boolean validateToken(String token) {
-        return false;
+    public String generateToken(User user) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expirationMs);
+
+        return Jwts.builder()
+                .subject(user.getEmail())
+                .claim("customerId", user.getCustomerId())
+                .claim("role", user.getRole().name())
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(signingKey())
+                .compact();
+    }
+
+    @Override
+    public boolean validateToken(String token, String email) {
+        try {
+            Claims claims = parseClaims(token);
+            boolean usernameMatched = claims.getSubject().equals(email);
+            boolean notExpired = claims.getExpiration().after(new Date());
+
+            return usernameMatched && notExpired;
+        } catch (ExpiredJwtException e) {
+            return false;
+        }
     }
 
     @Override
     public String extractEmailFromToken(String token) {
-        return "";
+        return parseClaims(token).getSubject();
+    }
+
+    private Claims parseClaims(String token){
+        return Jwts.parser()
+                .verifyWith(signingKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

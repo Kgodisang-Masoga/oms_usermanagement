@@ -9,7 +9,9 @@ import com.fnb.usermanagement.entity.User;
 import com.fnb.usermanagement.entity.UserCredential;
 import com.fnb.usermanagement.repository.UserCredentialsRepository;
 import com.fnb.usermanagement.repository.UserRepository;
+import com.fnb.usermanagement.security.JWTService;
 import com.fnb.usermanagement.service.AuthService;
+import io.jsonwebtoken.Jwts;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +24,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final UserCredentialsRepository userCredentialsRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JWTService jwtService;
 
     @Override
     @Transactional
@@ -48,8 +51,10 @@ public class AuthServiceImpl implements AuthService {
 
         User user = userRepository.findByEmail(loginRequest.getEmail());
 
+        String token = jwtService.generateToken(user);
+
         return LoginResponse.builder()
-                .token()
+                .token(token)
                 .customerId(user.getCustomerId())
                 .email(user.getEmail())
                 .role(user.getRole().name())
