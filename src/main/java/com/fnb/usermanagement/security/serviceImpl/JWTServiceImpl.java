@@ -58,6 +58,7 @@ public class JWTServiceImpl implements JWTService {
 
     @Override
     public String extractEmailFromToken(String token) {
+
         return parseClaims(token).getSubject();
     }
 
